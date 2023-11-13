@@ -26,7 +26,7 @@ impl BotConfg {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Watcher {
     url: String,
     khh: lib::Component,
@@ -34,8 +34,8 @@ struct Watcher {
 }
 
 impl Watcher {
-    async fn new(mut self) {
-        let result = reqwest::get(self.url)
+    async fn new(&mut self) {
+        let result = reqwest::get(&self.url)
             .await
             .expect("fetch data error")
             .json::<lib::Root>()
@@ -54,8 +54,8 @@ impl Watcher {
             .unwrap()
             .clone();
     }
-    async fn fetch(self) -> Option<lib::Root> {
-        match reqwest::get(self.url)
+    async fn fetch(&self) -> Option<lib::Root> {
+        match reqwest::get(&self.url)
             .await
             .expect("fetch data error")
             .json::<lib::Root>()
@@ -74,21 +74,22 @@ async fn main() {
     println!("Connecting to Telegram...");
     let client = Bot::new(&botconf.bot_token);
     match client.get_me().await {
-        Ok(me) => { println!("Running, {:?}", me.username) }
+        Ok(me) => { println!("Running, {:?}", me.username.as_ref()) }
         Err(e) => {panic!("{}", e)}
     }
     println!("Connected!");
 
     // init fetch
-    let watcher = Watcher {
+    let mut watcher = Watcher {
         url: "https://www.cloudflarestatus.com/api/v2/summary.json".to_string(),
         khh: Default::default(),
         tpe: Default::default(),
     };
+    watcher.new().await;
 
     loop {
         tokio::time::sleep(Duration::from_millis(60000)).await;
-        let result = watcher.fetch().await.unwrap().clone();
+        let result = watcher.fetch().await.unwrap();
         let tpe = result
             .components
             .iter()
@@ -109,6 +110,7 @@ async fn main() {
                     .expect("when send msg to an error occur");
             }
         }
+
         if khh != &watcher.khh {
             let text = format!("🔔 Cloudflare KHH 狀態變更\n{}", khh.status);
             for group in &botconf.notify {
