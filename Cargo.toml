@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+chrono = { version = "0.4.31", features = ["rustc-serialize", "serde"] }
 grammers-client = { version = "0.4.0", features = ["markdown"] }
 grammers-crypto = "0.4.0"
 grammers-mtproto = "0.4.0"
@@ -15,7 +16,6 @@ grammers-tl-gen = "0.4.1"
 grammers-tl-parser = "1.1.0"
 grammers-tl-types = "0.4.0"
 reqwest = { version = "0.11.22", features = ["serde_json", "json"] }
-sea-orm = { version = "0.12.5", features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = { version = "1.0.108", features = [] }
 serde_yaml = "0.9.27"

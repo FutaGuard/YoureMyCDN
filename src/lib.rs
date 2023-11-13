@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -31,9 +32,9 @@ pub struct Component {
     pub name: String,
     pub status: String,
     #[serde(rename = "created_at")]
-    pub created_at: String,
+    pub created_at: DateTime<Utc>,
     #[serde(rename = "updated_at")]
-    pub updated_at: String,
+    pub updated_at: DateTime<Utc>,
     pub position: i64,
     pub description: Option<String>,
     pub showcase: bool,
