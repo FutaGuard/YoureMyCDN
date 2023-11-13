@@ -1,14 +1,12 @@
 use chrono::prelude::*;
-use grammers_client::{Client, Config};
-use grammers_session::Session;
-use grammers_client::InputMessage;
+use teloxide::prelude::*;
 
-use grammers_tl_types as tl;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_yaml;
 use std::fs::File;
 use std::ops::BitAnd;
+use std::sync::Arc;
 use std::time::Duration;
 
 mod lib;
@@ -28,7 +26,7 @@ impl BotConfg {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Watcher {
     url: String,
     khh: lib::Component,
@@ -36,8 +34,8 @@ struct Watcher {
 }
 
 impl Watcher {
-    async fn new(mut self) {
-        let result = reqwest::get(self.url)
+    async fn new(&mut self) {
+        let result = reqwest::get(&self.url)
             .await
             .expect("fetch data error")
             .json::<lib::Root>()
@@ -56,8 +54,8 @@ impl Watcher {
             .unwrap()
             .clone();
     }
-    async fn fetch(self) -> Option<lib::Root> {
-        match reqwest::get(self.url)
+    async fn fetch(&self) -> Option<lib::Root> {
+        match reqwest::get(&self.url)
             .await
             .expect("fetch data error")
             .json::<lib::Root>()
@@ -71,69 +69,55 @@ impl Watcher {
 
 #[tokio::main]
 async fn main() {
-    let botconf = BotConfg::load().unwrap();
-    let mut chatlist = Vec::new();
-    let mut notify_chats = Vec::new();
-    println!("Connecting to Telegram...");
-    let client = Client::connect(Config {
-        session: Session::load_file_or_create("bot.session").unwrap(),
-        api_id: botconf.api_id,
-        api_hash: botconf.api_hash,
-        params: Default::default(),
-    })
-    .await
-    .unwrap();
-    if !client.is_authorized().await.unwrap() {
-        panic!("Bot Token Error or API hash Error")
-    }
-    let mut dialogs = client.iter_dialogs();
-    while let Some(dialog) = dialogs.next().await? { chatlist.push(dialog.chat().clone()) };
-    for notify_id in botconf.notify {
-        match chatlist.iter().find(|&x| x.id() == notify_id).unwrap() {
-            Ok(c) => { notify_chats.push(c) }
-        }
-    }
+    let botconf = Arc::new(BotConfg::load().unwrap());
 
+    println!("Connecting to Telegram...");
+    let client = Bot::new(&botconf.bot_token);
+    match client.get_me().await {
+        Ok(me) => { println!("Running, {:?}", me.username.as_ref()) }
+        Err(e) => {panic!("{}", e)}
+    }
     println!("Connected!");
 
     // init fetch
-    // let watcher = Watcher::new();
-    let watcher = Watcher {
+    let mut watcher = Watcher {
         url: "https://www.cloudflarestatus.com/api/v2/summary.json".to_string(),
         khh: Default::default(),
         tpe: Default::default(),
     };
     watcher.new().await;
+
     loop {
         tokio::time::sleep(Duration::from_millis(60000)).await;
         let result = watcher.fetch().await.unwrap();
         let tpe = result
             .components
             .iter()
-            .find(|&&x| x.name.starts_with("Taipei"))
+            .find(|&x| x.name.starts_with("Taipei"))
             .unwrap();
         let khh = result
             .components
             .iter()
-            .find(|&&x| x.name.starts_with("Kaohsiung"))
+            .find(|&x| x.name.starts_with("Kaohsiung"))
             .unwrap();
+
         if tpe != &watcher.tpe {
             let text = format!("🔔 Cloudflare TPE 狀態變更\n{}", tpe.status);
-            for group in botconf.notify {
-
+            for group in &botconf.notify {
                 client
-                    .send_message(group, InputMessage::text(&text))
+                    .send_message(ChatId(group.clone()), &text)
                     .await
-                    .except(format!("when send msg to {} an error occur", group));
+                    .expect("when send msg to an error occur");
             }
         }
+
         if khh != &watcher.khh {
             let text = format!("🔔 Cloudflare KHH 狀態變更\n{}", khh.status);
-            for group in botconf.notify {
+            for group in &botconf.notify {
                 client
-                    .send_message(group, InputMessage::text(&text))
+                    .send_message(ChatId(group.clone()), &text)
                     .await
-                    .except(format!("when send msg to {} an error occur", group));
+                    .expect("when send msg to an error occur");
             }
         }
     }
