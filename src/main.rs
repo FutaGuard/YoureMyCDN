@@ -7,7 +7,7 @@ use std::fs::File;
 use std::sync::Arc;
 use std::time::Duration;
 
-mod lib;
+mod types;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct BotConfg {
@@ -25,8 +25,8 @@ impl BotConfg {
 #[derive(Default, Clone)]
 struct Watcher {
     url: String,
-    khh: lib::Component,
-    tpe: lib::Component,
+    khh: types::Component,
+    tpe: types::Component,
 }
 
 impl Watcher {
@@ -34,7 +34,7 @@ impl Watcher {
         let result = reqwest::get(&self.url)
             .await
             .expect("fetch data error")
-            .json::<lib::Root>()
+            .json::<types::Root>()
             .await
             .expect("parse data error");
         self.khh = result
@@ -50,11 +50,11 @@ impl Watcher {
             .unwrap()
             .clone();
     }
-    async fn fetch(&self) -> Option<lib::Root> {
+    async fn fetch(&self) -> Option<types::Root> {
         match reqwest::get(&self.url)
             .await
             .expect("fetch data error")
-            .json::<lib::Root>()
+            .json::<types::Root>()
             .await
         {
             Ok(t) => Some(t),
