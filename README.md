@@ -6,7 +6,7 @@
 
 ## 使用方法
 ```shell
-git clone https://github.com/FutaGuard/CloudflareStatus.git
+git clone https://github.com/FutaGuard/YoureMyCDN.git
 cargo build --release
 
 cp config.example.yml config.yml
