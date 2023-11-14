@@ -5,7 +5,6 @@ use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_yaml;
 use std::fs::File;
-use std::ops::BitAnd;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -13,8 +12,6 @@ mod lib;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct BotConfg {
-    api_id: i32,
-    api_hash: String,
     bot_token: String,
     notify: Vec<i64>,
 }
@@ -74,8 +71,12 @@ async fn main() {
     println!("Connecting to Telegram...");
     let client = Bot::new(&botconf.bot_token);
     match client.get_me().await {
-        Ok(me) => { println!("Running, {:?}", me.username.as_ref()) }
-        Err(e) => {panic!("{}", e)}
+        Ok(me) => {
+            println!("Running, {:?}", me.username.as_ref())
+        }
+        Err(e) => {
+            panic!("{}", e)
+        }
     }
     println!("Connected!");
 
